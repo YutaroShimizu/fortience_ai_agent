@@ -5,7 +5,9 @@ src -> pages -> chat -> Chat.tsx
 ESetup
 cd frontend
 npm install
-npm run dev
+#npm run dev
+cd ../
+.\stard.cmd
 
 EReferences
 sample-app-aoai-chatGPT
