@@ -629,11 +629,13 @@ async def download_citation_file():
         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         container_client = blob_service_client.get_container_client(container_name)
         blob_client = container_client.get_blob_client(filepath)
-
+        print("------------debug1----------------")
+        print(filepath)
         print("------------debug2----------------")
         # Blob をダウンロード
         download_stream = await blob_client.download_blob()
         data = await download_stream.readall()
+        print("------------debug3----------------")
 
         # Content-Type とファイル名を設定
         content_type = (
