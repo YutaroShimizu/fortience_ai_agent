@@ -22,6 +22,43 @@ interface Props {
   onExectResultClicked: (answerId: string) => void
 }
 
+// 先頭の import 群の下あたりに追加
+const getDisplayFileName = (raw?: string | null): string => {
+  if (!raw) return "";
+
+  let decoded = raw;
+
+  // 1) Base64 デコードを試す
+  try {
+    decoded = atob(raw);
+  } catch {
+    decoded = raw;
+  }
+
+  let path = decoded;
+
+  // 2) URL なら pathname を取り出す
+  try {
+    if (decoded.startsWith("http://") || decoded.startsWith("https://")) {
+      const url = new URL(decoded);
+      path = url.pathname; // 例: "/documents/人事/xxx.doc"
+    }
+  } catch {
+    path = decoded;
+  }
+
+  // 3) %E4%BA%BA → 人事 に戻す
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    // 失敗したらそのまま
+  }
+
+  // 4) 最後のスラッシュ以降をファイル名として返す
+  const parts = path.split(/[\\/]/);
+  return parts[parts.length - 1] || raw;
+};
+
 export const Answer = ({ answer, onCitationClicked, onExectResultClicked }: Props) => {
   const initializeAnswerFeedback = (answer: AskResponse) => {
     if (answer.message_id == undefined) return undefined
@@ -70,15 +107,17 @@ export const Answer = ({ answer, onCitationClicked, onExectResultClicked }: Prop
     let citationFilename = ''
 
     if (citation.filepath) {
+      const displayName = getDisplayFileName(citation.filepath)
       const part_i = citation.part_index ?? (citation.chunk_id ? parseInt(citation.chunk_id) + 1 : '')
       if (truncate && citation.filepath.length > filePathTruncationLimit) {
         const citationLength = citation.filepath.length
-        citationFilename = `${citation.filepath.substring(0, 20)}...${citation.filepath.substring(citationLength - 20)} - Part ${part_i}`
+        citationFilename = `${displayName.substring(0, 20)}...${displayName.substring(citationLength - 20)} - Part ${part_i}`
       } else {
-        citationFilename = `${citation.filepath} - Part ${part_i}`
+        citationFilename = `${displayName} - Part ${part_i}`
       }
     } else if (citation.filepath && citation.reindex_id) {
-      citationFilename = `${citation.filepath} - Part ${citation.reindex_id}`
+      const displayName = getDisplayFileName(citation.filepath)
+      citationFilename = `${displayName} - Part ${citation.reindex_id}`
     } else {
       citationFilename = `Citation ${index}`
     }

@@ -45,6 +45,40 @@ const enum messageStatus {
   Done = 'Done'
 }
 
+const getDisplayFileName = (raw?: string | null): string => {
+  if (!raw) return "";
+
+  let decoded = raw;
+
+  // Base64 decode
+  try {
+    decoded = atob(raw);
+  } catch {
+    decoded = raw;
+  }
+
+  let path = decoded;
+
+  // URL → pathname 抽出
+  try {
+    if (decoded.startsWith("http://") || decoded.startsWith("https://")) {
+      const url = new URL(decoded);
+      path = url.pathname;  // /documents/人事/xxx.doc
+    }
+  } catch {
+    path = decoded;
+  }
+
+  // %E4%BA… を UTF-8 に戻す
+  try {
+    path = decodeURIComponent(path);
+  } catch {}
+
+  // 最後のスラッシュ以降をファイル名として返す
+  const parts = path.split(/[\\/]/);
+  return parts[parts.length - 1] || raw;
+};
+
 const Chat = () => {
   const appStateContext = useContext(AppStateContext)
   const ui = appStateContext?.state.frontendSettings?.ui
@@ -721,9 +755,7 @@ const Chat = () => {
     try {
       const response = await fetch("/api/citation-download", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ filepath: citation.filepath })
       });
 
@@ -732,17 +764,14 @@ const Chat = () => {
         return;
       }
 
-      // バイナリとして受け取ってブラウザでダウンロードさせる
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
 
       const a = document.createElement("a");
-      // ファイル名は filepath の末尾を利用（必要に応じて title 等に変更）
-      const fileName =
-        citation.filepath.split(/[\\/]/).pop() ?? "download";
+      const fileName = getDisplayFileName(citation.filepath);
 
       a.href = url;
-      a.download = fileName;
+      a.download = fileName || "download";
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -1005,7 +1034,7 @@ const Chat = () => {
                     style={{ cursor: "pointer" }}
                     title="クリックしてファイルをダウンロード"
                     onClick={() => onDownloadCitationFile(activeCitation)}>
-                  {activeCitation.filepath}
+                  {getDisplayFileName(activeCitation.filepath)}
                 </h4>
               )}
               <h5

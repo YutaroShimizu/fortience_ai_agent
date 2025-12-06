@@ -5,6 +5,7 @@ import logging
 import uuid
 import httpx
 import asyncio
+import base64
 from quart import (
     Blueprint,
     Quart,
@@ -36,6 +37,8 @@ from backend.utils import (
     format_pf_non_streaming_response,
 )
 from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+from urllib.parse import urlparse, unquote
 from dotenv import load_dotenv
 from pathlib import Path
 env_path = Path(__file__).resolve().parents[1] / ".env"
@@ -603,65 +606,108 @@ def get_frontend_settings():
         logging.exception("Exception in /frontend_settings")
         return jsonify({"error": str(e)}), 500
 
+def maybe_decode_base64(s: str) -> str:
+    """
+    filepath が Base64 エンコードされた URL の場合はデコードして返す。
+    そうでない場合はそのまま返す。
+    """
+    try:
+        # Base64 は 4 の倍数である必要があるためパディングする
+        padding = 4 - (len(s) % 4)
+        if padding and padding != 4:
+            s += "=" * padding
+
+        decoded = base64.b64decode(s).decode("utf-8")
+
+        # URL の場合のみ採用
+        if decoded.startswith("http://") or decoded.startswith("https://"):
+            return decoded
+
+        return s  # Base64 だが URL ではない場合 → 元の値を返す
+    except Exception:
+        return s  # Base64 ではない → そのまま返す
+
+def normalize_blob_name_from_url_or_path(filepath: str, container_name: str) -> str:
+    """
+    URL またはパスから Azure Blob Storage の blob名（相対パス）を取り出す。
+    例) /documents/%E4%BA%BA%E4%BA%8B/07...doc
+         → 人事/07...doc
+    """
+    if filepath.startswith("http://") or filepath.startswith("https://"):
+        parsed = urlparse(filepath)
+        # URL の path を取得して先頭の / を削り、さらに %xx を UTF-8 デコード
+        path = unquote(parsed.path.lstrip("/"))  # ★ここがポイント
+    else:
+        path = unquote(filepath.lstrip("/"))
+
+    prefix = container_name + "/"
+    if path.startswith(prefix):
+        return path[len(prefix):]
+
+    return path
+
 @bp.route("/api/citation-download", methods=["POST"])
 async def download_citation_file():
-    """
-    フロントエンドから filepath を受け取り、
-    Azure Blob Storage からファイルを読み出してダウンロードさせるエンドポイント
-    """
     try:
         if not request.is_json:
             return jsonify({"error": "request must be json"}), 415
 
         body = await request.get_json()
-        filepath = body.get("filepath")
-        if not filepath:
+        raw_filepath = body.get("filepath")
+        print("DEBUG request body :", body)
+        if not raw_filepath:
             return jsonify({"error": "filepath is required"}), 400
 
-        # .env から接続情報を取得
+        # .env から接続情報取得
         connection_string = app_settings.azure_storage.CONNECTION_STRING
         container_name = app_settings.azure_storage.CONTAINER_NAME
 
         if not connection_string or not container_name:
-            return jsonify({"error": "Storage is not configured"}), 500
+            return jsonify({"error": "storage is not configured"}), 500
 
-        # Blob クライアント作成 (aio 版)
+        # ★ ここがポイント：Base64 をデコードして URL/パスに戻す
+        decoded_or_path = maybe_decode_base64(raw_filepath)
+
+        # ★ URL or パス から Blob 名（サブフォルダ＋ファイル名）を抽出
+        blob_name = normalize_blob_name_from_url_or_path(decoded_or_path, container_name)
+
+        print("DEBUG raw_filepath :", raw_filepath)
+        print("DEBUG decoded/path :", decoded_or_path)
+        print("DEBUG blob_name    :", blob_name)
+
+        # Blob クライアント作成
         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         container_client = blob_service_client.get_container_client(container_name)
-        blob_client = container_client.get_blob_client(filepath)
-        print("------------debug1----------------")
-        print(filepath)
-        print("------------debug2----------------")
-        # Blob をダウンロード
-        download_stream = await blob_client.download_blob()
-        data = await download_stream.readall()
-        print("------------debug3----------------")
+        blob_client = container_client.get_blob_client(blob_name)
 
-        # Content-Type とファイル名を設定
+        # Blob ダウンロード
+        try:
+            download_stream = await blob_client.download_blob()
+            data = await download_stream.readall()
+        except ResourceNotFoundError:
+            logging.exception(
+                f"Blob not found. raw={raw_filepath}, decoded={decoded_or_path}, blob_name={blob_name}"
+            )
+            await blob_service_client.close()
+            return jsonify({"error": "file_not_found"}), 404
+
         content_type = (
             download_stream.properties.content_settings.content_type
             or "application/octet-stream"
         )
-        file_name = filepath.split("/")[-1]
+        file_name = blob_name.split("/")[-1]
 
-        # レスポンス生成
         response = await make_response(data)
         response.headers["Content-Type"] = content_type
-        response.headers[
-            "Content-Disposition"
-        ] = f'attachment; filename="{file_name}"'
+        response.headers["Content-Disposition"] = f'attachment; filename=\"{file_name}\"'
 
-        # クライアントを明示的にクローズ
         await blob_service_client.close()
-
         return response
 
     except Exception as e:
-        print("------------debug----------------")
-        print(e)
-        print("------------debug----------------")
         logging.exception("Exception in /api/citation-download")
         return jsonify({"error": str(e)}), 500
+
 
 
 ## Conversation History API ##
