@@ -715,6 +715,42 @@ const Chat = () => {
       window.open(citation.url, '_blank')
     }
   }
+  const onDownloadCitationFile = async (citation: Citation) => {
+    if (!citation.filepath) return;
+
+    try {
+      const response = await fetch("/api/citation-download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ filepath: citation.filepath })
+      });
+
+      if (!response.ok) {
+        console.error("Failed to download file", response.statusText);
+        return;
+      }
+
+      // バイナリとして受け取ってブラウザでダウンロードさせる
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      // ファイル名は filepath の末尾を利用（必要に応じて title 等に変更）
+      const fileName =
+        citation.filepath.split(/[\\/]/).pop() ?? "download";
+
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Error downloading citation file", e);
+    }
+  };
 
   const parseCitationFromMessage = (message: ChatMessage) => {
     if (message?.role && message?.role === 'tool' && typeof message?.content === "string") {
@@ -965,9 +1001,12 @@ const Chat = () => {
                 />
               </Stack>
               {activeCitation.filepath && (
-                <div className={styles.citationFileName}>
+                <h4 className={styles.citationFileName}
+                    style={{ cursor: "pointer" }}
+                    title="クリックしてファイルをダウンロード"
+                    onClick={() => onDownloadCitationFile(activeCitation)}>
                   {activeCitation.filepath}
-                </div>
+                </h4>
               )}
               <h5
                 className={styles.citationPanelTitle}

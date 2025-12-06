@@ -762,12 +762,25 @@ class _BaseSettings(BaseSettings):
     sanitize_answer: bool = False
     use_promptflow: bool = False
 
+class _AzureStorageSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="AZURE_STORAGE_",
+        env_file=DOTENV_PATH,
+        extra="ignore",
+        env_ignore_empty=True
+    )
+
+    ACCOUNT_NAME: Optional[str] = None
+    CONNECTION_STRING: Optional[str] = None
+    CONTAINER_NAME: Optional[str] = None
 
 class _AppSettings(BaseModel):
     base_settings: _BaseSettings = _BaseSettings()
     azure_openai: _AzureOpenAISettings = _AzureOpenAISettings()
     search: _SearchCommonSettings = _SearchCommonSettings()
     ui: Optional[_UiSettings] = _UiSettings()
+    azure_storage: _AzureStorageSettings = _AzureStorageSettings()
+
     
     # Constructed properties
     chat_history: Optional[_ChatHistorySettings] = None

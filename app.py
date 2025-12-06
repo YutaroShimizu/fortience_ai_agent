@@ -35,7 +35,11 @@ from backend.utils import (
     convert_to_pf_format,
     format_pf_non_streaming_response,
 )
-
+from azure.storage.blob.aio import BlobServiceClient
+from dotenv import load_dotenv
+from pathlib import Path
+env_path = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(env_path)
 bp = Blueprint("routes", __name__, static_folder="static", template_folder="static")
 
 cosmos_db_ready = asyncio.Event()
@@ -597,6 +601,64 @@ def get_frontend_settings():
         return jsonify(frontend_settings), 200
     except Exception as e:
         logging.exception("Exception in /frontend_settings")
+        return jsonify({"error": str(e)}), 500
+
+@bp.route("/api/citation-download", methods=["POST"])
+async def download_citation_file():
+    """
+    フロントエンドから filepath を受け取り、
+    Azure Blob Storage からファイルを読み出してダウンロードさせるエンドポイント
+    """
+    try:
+        if not request.is_json:
+            return jsonify({"error": "request must be json"}), 415
+
+        body = await request.get_json()
+        filepath = body.get("filepath")
+        if not filepath:
+            return jsonify({"error": "filepath is required"}), 400
+
+        # .env から接続情報を取得
+        connection_string = app_settings.azure_storage.CONNECTION_STRING
+        container_name = app_settings.azure_storage.CONTAINER_NAME
+
+        if not connection_string or not container_name:
+            return jsonify({"error": "Storage is not configured"}), 500
+
+        # Blob クライアント作成 (aio 版)
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        container_client = blob_service_client.get_container_client(container_name)
+        blob_client = container_client.get_blob_client(filepath)
+
+        print("------------debug2----------------")
+        # Blob をダウンロード
+        download_stream = await blob_client.download_blob()
+        data = await download_stream.readall()
+
+        # Content-Type とファイル名を設定
+        content_type = (
+            download_stream.properties.content_settings.content_type
+            or "application/octet-stream"
+        )
+        file_name = filepath.split("/")[-1]
+
+        # レスポンス生成
+        response = await make_response(data)
+        response.headers["Content-Type"] = content_type
+        response.headers[
+            "Content-Disposition"
+        ] = f'attachment; filename="{file_name}"'
+
+        # クライアントを明示的にクローズ
+        await blob_service_client.close()
+
+        return response
+
+    except Exception as e:
+        print("------------debug----------------")
+        print(e)
+        print("------------debug----------------")
+        logging.exception("Exception in /api/citation-download")
         return jsonify({"error": str(e)}), 500
 
 
