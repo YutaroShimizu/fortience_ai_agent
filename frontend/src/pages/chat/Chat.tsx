@@ -1030,13 +1030,20 @@ const Chat = () => {
                 />
               </Stack>
               {activeCitation.filepath && (
-                <h4 className={styles.citationFileName}
-                    style={{ cursor: "pointer" }}
-                    title="クリックしてファイルをダウンロード"
-                    onClick={() => onDownloadCitationFile(activeCitation)}>
-                  {getDisplayFileName(activeCitation.filepath)}
+                <h4
+                  className={styles.citationFileNameLink}
+                  title="クリックしてファイルをダウンロード"
+                  onClick={() => onDownloadCitationFile(activeCitation)}
+                  tabIndex={0}
+                  role="button"
+                  onKeyDown={e =>
+                    (e.key === "Enter" || e.key === " ") && onDownloadCitationFile(activeCitation)
+                  }
+                >
+                  <strong>{getDisplayFileName(activeCitation.filepath)}</strong>
                 </h4>
               )}
+
               <h5
                 className={styles.citationPanelTitle}
                 tabIndex={0}

@@ -396,3 +396,19 @@ a {
     max-width: 100%;
   }
 }
+
+.citationFileNameLink {
+  color: #115ea3;              
+  text-decoration: underline;  /* 下線でリンク表示 */
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.citationFileNameLink:hover {
+  color: #0b4a8a;              /* ホバー時に少し濃く */
+}
+
+.citationFileNameLink:focus {
+  outline: 1px solid #0b4a8a;  /* キーボード操作対応 */
+  outline-offset: 2px;
+}
