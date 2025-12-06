@@ -964,12 +964,11 @@ const Chat = () => {
                   onClick={() => setIsCitationPanelOpen(false)}
                 />
               </Stack>
-              {/* <pre>{JSON.stringify(activeCitation, null, 2)}</pre>
               {activeCitation.filepath && (
                 <div className={styles.citationFileName}>
-                  <strong>File:</strong> {activeCitation.filepath}
+                  {activeCitation.filepath}
                 </div>
-              )} */}
+              )}
               <h5
                 className={styles.citationPanelTitle}
                 tabIndex={0}
