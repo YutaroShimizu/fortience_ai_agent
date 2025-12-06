@@ -654,7 +654,6 @@ async def download_citation_file():
 
         body = await request.get_json()
         raw_filepath = body.get("filepath")
-        print("DEBUG request body :", body)
         if not raw_filepath:
             return jsonify({"error": "filepath is required"}), 400
 
@@ -665,10 +664,10 @@ async def download_citation_file():
         if not connection_string or not container_name:
             return jsonify({"error": "storage is not configured"}), 500
 
-        # ★ ここがポイント：Base64 をデコードして URL/パスに戻す
+        # Base64 をデコードして URL/パスに戻す
         decoded_or_path = maybe_decode_base64(raw_filepath)
 
-        # ★ URL or パス から Blob 名（サブフォルダ＋ファイル名）を抽出
+        # URL or パス から Blob 名（サブフォルダ＋ファイル名）を抽出
         blob_name = normalize_blob_name_from_url_or_path(decoded_or_path, container_name)
 
         print("DEBUG raw_filepath :", raw_filepath)
