@@ -636,7 +636,7 @@ def normalize_blob_name_from_url_or_path(filepath: str, container_name: str) -> 
     if filepath.startswith("http://") or filepath.startswith("https://"):
         parsed = urlparse(filepath)
         # URL の path を取得して先頭の / を削り、さらに %xx を UTF-8 デコード
-        path = unquote(parsed.path.lstrip("/"))  # ★ここがポイント
+        path = unquote(parsed.path.lstrip("/"))
     else:
         path = unquote(filepath.lstrip("/"))
 

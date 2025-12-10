@@ -29,6 +29,31 @@ Compress-Archive -Path * -DestinationPath ..\fortience-ai-agent.zip -Force
 # Get-ChildItem -Recurse -File | Where-Object { $_.FullName -notlike "*\.git\*" -and $_.FullName -notlike "*node_modules*" -and $_.FullName -notlike "*\.venv\*"} | Compress-Archive -DestinationPath ..\fortience-ai-agent.zip -Force
 az webapp deployment source config-zip --resource-group rg-rag-dev-all-001 --name app-rag-dev-japanwest-002 --src ..\fortience-ai-agent.zip
 
+
+
+az webapp config set `
+  --resource-group rg-rag-dev-all-001 `
+  --name app-rag-dev-japanwest-003 `
+  --startup-file "python3 -m gunicorn --chdir /home/site/wwwroot app:app"
+
+az webapp config appsettings set `
+  -g rg-rag-dev-all-001 `
+  -n app-rag-dev-japanwest-003 `
+  --settings SCM_DO_BUILD_DURING_DEPLOYMENT=true WEBSITE_WEBDEPLOY_USE_SCM=false
+az webapp config appsettings set `
+  -g rg-rag-dev-all-001 `
+  -n app-rag-dev-japanwest-003 `
+  --settings "@env.json"
+
+az webapp up `
+  --runtime PYTHON:3.11 `
+  --sku B3 `
+  --name app-rag-dev-japanwest-003 `
+  --resource-group rg-rag-dev-all-001 `
+  --location japanwest `
+  --subscription 2fbe88c6-0bee-427e-9309-0f0bce458f15 `
+  --track-status false
+
 #Logging
 az webapp log deployment show --resource-group rg-rag-dev-all-001 --name app-rag-dev-japanwest-002
 
