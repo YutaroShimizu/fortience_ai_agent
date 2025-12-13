@@ -6,6 +6,8 @@ import uuid
 import httpx
 import asyncio
 import base64
+import mimetypes
+import re
 from quart import (
     Blueprint,
     Quart,
@@ -15,8 +17,9 @@ from quart import (
     send_from_directory,
     render_template,
     current_app,
+    Response,
 )
-
+from urllib.parse import quote
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import (
     DefaultAzureCredential,
@@ -646,6 +649,77 @@ def normalize_blob_name_from_url_or_path(filepath: str, container_name: str) -> 
 
     return path
 
+# @bp.route("/api/citation-download", methods=["POST"])
+# async def download_citation_file():
+#     try:
+#         if not request.is_json:
+#             return jsonify({"error": "request must be json"}), 415
+
+#         body = await request.get_json()
+#         raw_filepath = body.get("filepath")
+#         if not raw_filepath:
+#             return jsonify({"error": "filepath is required"}), 400
+
+#         # .env から接続情報取得
+#         connection_string = app_settings.azure_storage.CONNECTION_STRING
+#         container_name = app_settings.azure_storage.CONTAINER_NAME
+
+#         if not connection_string or not container_name:
+#             return jsonify({"error": "storage is not configured"}), 500
+
+#         # Base64 をデコードして URL/パスに戻す
+#         decoded_or_path = maybe_decode_base64(raw_filepath)
+
+#         # URL or パス から Blob 名（サブフォルダ＋ファイル名）を抽出
+#         blob_name = normalize_blob_name_from_url_or_path(decoded_or_path, container_name)
+
+#         logging.debug("DEBUG raw_filepath : %s", raw_filepath)
+#         logging.debug("DEBUG decoded/path : %s", decoded_or_path)
+#         logging.debug("DEBUG blob_name    : %s", blob_name)
+
+#         # Blob クライアント作成
+#         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+#         container_client = blob_service_client.get_container_client(container_name)
+#         blob_client = container_client.get_blob_client(blob_name)
+
+#         # Blob ダウンロード
+#         try:
+#             download_stream = await blob_client.download_blob()
+#             data = await download_stream.readall()
+#         except ResourceNotFoundError:
+#             logging.error("ResourceNotFoundError: Blob not found.")
+#             logging.exception(
+#                 f"Blob not found. raw={raw_filepath}, decoded={decoded_or_path}, blob_name={blob_name}"
+#             )
+#             await blob_service_client.close()
+#             return jsonify({"error": "file_not_found"}), 404
+#         content_type = (
+#             download_stream.properties.content_settings.content_type
+#             or "application/octet-stream"
+#         )
+#         file_name = blob_name.split("/")[-1]
+
+#         response = Response(
+#             data,
+#             status=200,
+#             mimetype=content_type,
+#         )
+#         response.headers["Content-Disposition"] = f'attachment; filename="{file_name}"'
+#         # response = await make_response(data)
+#         # response.headers["Content-Type"] = content_type
+#         # response.headers["Content-Disposition"] = f'attachment; filename=\"{file_name}\"'
+
+#         await blob_service_client.close()
+#         # body = await response.get_data()
+#         # text = body.decode("utf-8", errors="replace")
+#         logging.debug("DEBUG : %s", response.status_code)
+#         return response
+
+#     except Exception as e:
+#         logging.error("Exception:%s", e)
+#         logging.exception("Exception in /api/citation-download")
+#         return jsonify({"error": str(e)}), 500
+
 @bp.route("/api/citation-download", methods=["POST"])
 async def download_citation_file():
     try:
@@ -657,57 +731,54 @@ async def download_citation_file():
         if not raw_filepath:
             return jsonify({"error": "filepath is required"}), 400
 
-        # .env から接続情報取得
         connection_string = app_settings.azure_storage.CONNECTION_STRING
         container_name = app_settings.azure_storage.CONTAINER_NAME
-
         if not connection_string or not container_name:
             return jsonify({"error": "storage is not configured"}), 500
 
-        # Base64 をデコードして URL/パスに戻す
         decoded_or_path = maybe_decode_base64(raw_filepath)
-
-        # URL or パス から Blob 名（サブフォルダ＋ファイル名）を抽出
         blob_name = normalize_blob_name_from_url_or_path(decoded_or_path, container_name)
 
-        print("DEBUG raw_filepath :", raw_filepath)
-        print("DEBUG decoded/path :", decoded_or_path)
-        print("DEBUG blob_name    :", blob_name)
+        logging.debug("DEBUG blob_name: %s", blob_name)
 
-        # Blob クライアント作成
         blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         container_client = blob_service_client.get_container_client(container_name)
         blob_client = container_client.get_blob_client(blob_name)
 
-        # Blob ダウンロード
         try:
             download_stream = await blob_client.download_blob()
             data = await download_stream.readall()
         except ResourceNotFoundError:
-            logging.exception(
-                f"Blob not found. raw={raw_filepath}, decoded={decoded_or_path}, blob_name={blob_name}"
-            )
             await blob_service_client.close()
             return jsonify({"error": "file_not_found"}), 404
 
-        content_type = (
-            download_stream.properties.content_settings.content_type
-            or "application/octet-stream"
-        )
         file_name = blob_name.split("/")[-1]
+        file_name = os.path.basename(file_name)
 
-        response = await make_response(data)
-        response.headers["Content-Type"] = content_type
-        response.headers["Content-Disposition"] = f'attachment; filename=\"{file_name}\"'
+        # ASCII fallback（日本語などは _ に置換）
+        ascii_fallback = re.sub(r'[^A-Za-z0-9._-]', '_', file_name)
+        if not ascii_fallback:
+            ascii_fallback = "download"
 
-        await blob_service_client.close()
-        return response
+        # RFC5987: UTF-8 を percent-encode
+        utf8_quoted = quote(file_name)
+
+        content_type, _ = mimetypes.guess_type(file_name)
+        if not content_type:
+            content_type = "application/octet-stream"
+
+        resp = Response(data, status=200, mimetype=content_type)
+
+        # filename は ASCII、filename* に UTF-8
+        resp.headers["Content-Disposition"] = (
+            f'attachment; filename="{ascii_fallback}"; filename*=UTF-8\'\'{utf8_quoted}'
+        )
+
+        return resp
 
     except Exception as e:
         logging.exception("Exception in /api/citation-download")
         return jsonify({"error": str(e)}), 500
-
-
 
 ## Conversation History API ##
 @bp.route("/history/generate", methods=["POST"])

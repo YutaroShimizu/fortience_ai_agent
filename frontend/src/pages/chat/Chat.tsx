@@ -59,22 +59,22 @@ const getDisplayFileName = (raw?: string | null): string => {
 
   let path = decoded;
 
-  // URL ¨ pathname ’Šo
+  // URL ï¿½ï¿½ pathname ï¿½ï¿½ï¿½o
   try {
     if (decoded.startsWith("http://") || decoded.startsWith("https://")) {
       const url = new URL(decoded);
-      path = url.pathname;  // /documents/lŽ–/xxx.doc
+      path = url.pathname;  // /documents/ï¿½lï¿½ï¿½/xxx.doc
     }
   } catch {
     path = decoded;
   }
 
-  // %E4%BAc ‚ð UTF-8 ‚É–ß‚·
+  // %E4%BAï¿½c ï¿½ï¿½ UTF-8 ï¿½É–ß‚ï¿½
   try {
     path = decodeURIComponent(path);
   } catch {}
 
-  // ÅŒã‚ÌƒXƒ‰ƒbƒVƒ…ˆÈ~‚ðƒtƒ@ƒCƒ‹–¼‚Æ‚µ‚Ä•Ô‚·
+  // ï¿½ÅŒï¿½ÌƒXï¿½ï¿½ï¿½bï¿½Vï¿½ï¿½ï¿½È~ï¿½ï¿½ï¿½tï¿½@ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½Æ‚ï¿½ï¿½Ä•Ô‚ï¿½
   const parts = path.split(/[\\/]/);
   return parts[parts.length - 1] || raw;
 };
@@ -1032,7 +1032,7 @@ const Chat = () => {
               {activeCitation.filepath && (
                 <h4
                   className={styles.citationFileNameLink}
-                  title="ƒNƒŠƒbƒN‚µ‚Äƒtƒ@ƒCƒ‹‚ðƒ_ƒEƒ“ƒ[ƒh"
+                  title="ï¿½Nï¿½ï¿½ï¿½bï¿½Nï¿½ï¿½ï¿½Äƒtï¿½@ï¿½Cï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½Eï¿½ï¿½ï¿½ï¿½ï¿½[ï¿½h"
                   onClick={() => onDownloadCitationFile(activeCitation)}
                   tabIndex={0}
                   role="button"
