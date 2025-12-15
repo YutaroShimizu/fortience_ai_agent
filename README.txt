@@ -51,9 +51,22 @@ az webapp config set --startup-file "python3 -m gunicorn app:app" --name app-rag
 az webapp config appsettings set -g rg-rag-dev-all-001 -n app-rag-dev-japanwest-200 --settings WEBSITE_WEBDEPLOY_USE_SCM=false
 az webapp config appsettings set -g rg-rag-dev-all-001 -n app-rag-dev-japanwest-200 --settings "@env.json"
 
-#Update RAG Apps
+##Update RAG Apps
+#Development system
 az webapp up --runtime PYTHON:3.11 --sku B3 --name app-rag-dev-japanwest-200 --resource-group rg-rag-dev-all-001
 az webapp config set --startup-file "python3 -m gunicorn app:app" --name app-rag-dev-japanwest-200
+
+#Production system
+az webapp up --runtime PYTHON:3.11 --sku B3 --name app-rag-dev-japanwest-100 --plan asp-app-rag-dev-japanwest-100 --resource-group rg-rag-dev-all-001 --location japanwest --subscription 2fbe88c6-0bee-427e-9309-0f0bce458f15
+az webapp config appsettings set -g rg-rag-dev-all-001 -n app-rag-dev-japanwest-100 --settings WEBSITE_WEBDEPLOY_USE_SCM=false
+az webapp config appsettings set -g rg-rag-dev-all-001 -n app-rag-dev-japanwest-100 --settings "@env.json"
+
+az webapp config set --resource-group rg-rag-dev-all-001 --name app-rag-dev-japanwest-100 --startup-file "python3 -m gunicorn app:app"
+
+
+az webapp up --runtime PYTHON:3.11 --sku B3 --name app-rag-dev-japanwest-100 --resource-group rg-rag-dev-all-001
+az webapp config set --startup-file "python3 -m gunicorn app:app" --name app-rag-dev-japanwest-100
+
 
 #Logging
 az webapp log deployment show --resource-group rg-rag-dev-all-001 --name app-rag-dev-japanwest-200
