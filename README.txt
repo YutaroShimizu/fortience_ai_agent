@@ -72,6 +72,11 @@ az webapp config set --startup-file "python3 -m gunicorn app:app" --name app-rag
 az webapp log deployment show --resource-group rg-rag-dev-all-001 --name app-rag-dev-japanwest-200
 
 
+
+# Set system_message.txt(Metaprompt)
+az webapp config appsettings set --resource-group rg-rag-dev-all-001 --name app-rag-dev-japanwest-200 --settings AZURE_OPENAI_SYSTEM_MESSAGE=@system_message.txt
+
+
 #References
 sample-app-aoai-chatGPT
 https://github.com/microsoft/sample-app-aoai-chatGPT
