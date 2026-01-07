@@ -74,8 +74,11 @@ az webapp log deployment show --resource-group rg-rag-dev-all-001 --name app-rag
 
 
 # Set system_message.txt(Metaprompt)
-az webapp config appsettings set --resource-group rg-rag-dev-all-001 --name app-rag-dev-japanwest-200 --settings AZURE_OPENAI_SYSTEM_MESSAGE=@system_message.txt
+az webapp config appsettings set --resource-group rg-rag-dev-all-001 --name app-rag-dev-japanwest-200 --settings AZURE_OPENAI_SYSTEM_MESSAGE=@system_message_dev.txt
 
+# Copy glossary_roles.txt to Azure Blob Storage
+.\azcopy.exe login --tenant-id afb052b9-e6c3-4481-b796-848eb9ede5f1
+.\azcopy.exe copy "./glossary_roles.txt" "https://stragdevjapaneast010.blob.core.windows.net/documents/glossary_roles.txt"
 
 #References
 sample-app-aoai-chatGPT

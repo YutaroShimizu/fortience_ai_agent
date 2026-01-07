@@ -1,0 +1,13 @@
+SMD=SMD（Senior Managing Director）。シニアマネージングディレクター（Senior Managing Director）。当社における役職略語の一つで、マネージングディレクター（Senior Managing Director）より上位。
+MD=MD（Senior Managing Director）。マネージングディレクター（Senior Managing Director）。当社における役職略語の一つで、ディレクター（Director）より上位。
+D=D（Director）。ディレクター（Director）。当社における役職略語の一つで、シニアマネージャー（Senior Manager）より上位。
+SM=SM（Senior Manager）。シニアマネージャー（Senior Manager）。当社における役職略語の一つで、マネージャー（Manager）より上位。
+STA=STA（Senior Technology Architect）。シニアテクノロジーアーキテクト（Senior Technology Architect）。当社における役職略語の一つで、テクノロジーアーキテクト（Technology Architect）より上位。
+M=M（Manager）。マネージャー（Manager）。当社における役職略語の一つで、シニアコンサルタント（Senior Consultant）より上位。
+TA=TA（Technology Architect）。テクノロジーアーキテクト（Technology Architect）。当社における役職略語の一つで、シニアテクノロジーコンサルタント（Senior Technology Consultant）より上位。
+SC=SC（Senior Consultant）。シニアコンサルタント（Senior Consultant）。当社における役職略語の一つで、コンサルタント（Consultant）より上位。
+STC=STC（Senior Technology Consultant）。シニアテクノロジーコンサルタント（Senior Technology Consultant）。当社における役職略語の一つで、テクノロジーコンサルタント（Technology Consultant）より上位。
+C=C（Consultant）。コンサルタント（Consultant）。当社における役職略語の一つで、アナリスト（Analyst）より上位。
+TC=TC（Technology Consultant）。テクノロジーコンサルタント（Technology Consultant）。当社における役職略語の一つで、アナリスト（Analyst）より上位。
+ANA=ANA（Analyst）。アナリスト（Analyst）。当社における役職略語。
+クラス=役職。当社における役職と同義語。
